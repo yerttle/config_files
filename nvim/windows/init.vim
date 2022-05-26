@@ -1,3 +1,9 @@
+" configure expanding of tabs for various file types
+au BufRead,BufNewFile *.py set expandtab
+au BufRead,BufNewFile *.c set noexpandtab
+au BufRead,BufNewFile *.h set noexpandtab
+au BufRead,BufNewFile Makefile* set noexpandtab
+
 syntax enable
 set exrc
 set relativenumber
@@ -7,7 +13,9 @@ set noerrorbells
 set tabstop=4 softtabstop=4
 set shiftwidth=4
 set expandtab
+set autoindent
 set smartindent
+set smarttab
 set nowrap
 set noswapfile
 set nobackup
@@ -19,7 +27,7 @@ set signcolumn=yes
 set scrolloff=8
 set list
 set listchars=eol:$
-
+set cursorline
 " this is handled by coc
 let g:ale_disable_lsp = 1
 
@@ -30,38 +38,82 @@ let g:ale_linters = {
 
 let g:OmniSharp_highlighting = 0
 
+let g:OmniSharp_diagnostic_exclude_paths = [
+\ 'obj\\',
+\ 'Temp\\',
+\ '\.nuget\\'
+\]
 
 call plug#begin('~/AppData/Local/nvim/plugged')
  Plug 'vim-airline/vim-airline'
  Plug 'vim-airline/vim-airline-themes'
  Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
  Plug 'neovim/nvim-lspconfig'
- Plug 'omnisharp/omnisharp-vim'
- Plug 'nickspoons/vim-sharpenup'
+" Plug 'omnisharp/omnisharp-vim'
+" Plug 'nickspoons/vim-sharpenup'
  Plug 'neoclide/coc.nvim', {'branch': 'release'}
  Plug 'sheerun/vim-polyglot'
  Plug 'dense-analysis/ale'
-" Plug 'nvim-lua/completion-nvim'
  Plug 'nvim-lua/popup.nvim'
  Plug 'nvim-lua/plenary.nvim'
  Plug 'nvim-telescope/telescope.nvim'
-" Plug 'hrsh7th/nvim-cmp'
+ Plug 'nvim-telescope/telescope-file-browser.nvim'
+ Plug 'neovim/nvim-lspconfig'
+ Plug 'ThePrimeagen/harpoon'
+ Plug 'folke/tokyonight.nvim', { 'branch': 'main' }
+ Plug 'lukas-reineke/indent-blankline.nvim'
+ Plug 'github/copilot.vim'
+ Plug 'ryanoasis/vim-devicons'
 call plug#end()
+
+colorscheme tokyonight
 
 au BufNewFile,BufRead *.template set filetype=json
 
 " Tree Sitter
-lua require'nvim-treesitter.configs'.setup { highlight = { enable = true } }
+lua require'nvim-treesitter.configs'.setup { highlight = { enable = true }, ensure_installed = { "c", "lua", "c_sharp", "javascript" }, }
+
+" LSP
+lua require'lspconfig'.pyright.setup{}
+lua require'lspconfig'.tsserver.setup{}
+
+"  C#
+lua << EOF
+local pid = vim.fn.getpid()
+local omnisharp_bin = "C:/OmniSharp/omnisharp-win-x64-net6.0/OmniSharp.exe"
+require'lspconfig'.omnisharp.setup{
+    cmd = { omnisharp_bin, "--languageserver" , "--hostPID", tostring(pid) };
+    ...
+}
+EOF
+
+" Telescope FileBrowser
+lua require("telescope").load_extension "file_browser"
+
 
 " Ale
-nmap <silent> <C-k> <Plug>(ale_previous_wrap)
-nmap <silent> <C-j> <Plug>(ale_next_wrap)
+nmap <silent> <leader>ap <Plug>(ale_previous_wrap)
+nmap <silent> <leader>an <Plug>(ale_next_wrap)
 
+" Harpoon
+nnoremap <silent><leader>a :lua require("harpoon.mark").add_file()<CR>
+nnoremap <silent><C-e> :lua require("harpoon.ui").toggle_quick_menu()<CR>
+nnoremap <silent><leader>tc :lua require("harpoon.cmd-ui").toggle_quick_menu()<CR>
+nnoremap <silent><C-j> :lua require("harpoon.ui").nav_file(1)<CR>
+nnoremap <silent><C-k> :lua require("harpoon.ui").nav_file(2)<CR>
+nnoremap <silent><C-k> :lua require("harpoon.ui").nav_file(3)<CR>
+nnoremap <silent><C-l> :lua require("harpoon.ui").nav_file(4)<CR>
+
+nnoremap <silent><C-j> :lua require("harpoon.ui").nav_file(1)<CR>
+nnoremap <silent><C-k> :lua require("harpoon.ui").nav_file(2)<CR>
+nnoremap <silent><C-l> :lua require("harpoon.ui").nav_file(3)<CR>
+nnoremap <silent><C-h> :lua require("harpoon.ui").nav_file(4)<CR>
 
 " Telescope
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
 nnoremap <leader>fb <cmd>Telescope file_browser<cr>
 nnoremap <leader>ls <cmd>Telescope buffers<cr>
+nnoremap <leader>lg <cmd>Telescope live_grep<cr>
 
 " OmniSharp
 nnoremap <leader>ofi <cmd>OmniSharpFindImplementations<cr>
@@ -97,7 +149,7 @@ endfunction
 
 " Use <c-space> to trigger completion.
 if has('nvim')
-  inoremap <silent><expr> <c-space> coc#refresh()
+  inoremap <silent><expr> <C-s> coc#refresh()
 else
   inoremap <silent><expr> <c-@> coc#refresh()
 endif
@@ -151,8 +203,8 @@ augroup end
 
 " Applying codeAction to the selected region.
 " Example: `<leader>aap` for current paragraph
-xmap <leader>a  <Plug>(coc-codeaction-selected)
-nmap <leader>a  <Plug>(coc-codeaction-selected)
+"xmap <leader>a  <Plug>(coc-codeaction-selected)
+"nmap <leader>a  <Plug>(coc-codeaction-selected)
 
 " Remap keys for applying codeAction to the current buffer.
 nmap <leader>ac  <Plug>(coc-codeaction)
