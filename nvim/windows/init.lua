@@ -1,13 +1,3 @@
-local on_windows = vim.loop.os_uname().version:match 'Windows'
-
-local function join_paths(...)
-  local path_sep = on_windows and '\\' or '/'
-  local result = table.concat({ ... }, path_sep)
-  return result
-end
-
-vim.cmd [[set runtimepath=$VIMRUNTIME]]
-
 vim.wo.relativenumber = true
 vim.o.ignorecase = true
 vim.o.smartcase = true
@@ -25,48 +15,51 @@ set softtabstop=4
 set tabstop=4
 set cursorline
 set list
+set nu rnu
 au BufNewFile,BufRead *.template set filetype=json
 ]]
 
-local temp_dir = vim.loop.os_getenv 'TEMP' or '/tmp'
 
-vim.cmd('set packpath=' .. join_paths(temp_dir, 'nvim', 'site'))
+require('packer').startup(function()
+        use 'wbthomason/packer.nvim'
+        use 'folke/tokyonight.nvim'
+        use 'neovim/nvim-lspconfig'
+        use 'hrsh7th/cmp-nvim-lsp'
+        use 'hrsh7th/nvim-cmp'
+        use 'hrsh7th/cmp-vsnip'
+        use 'hrsh7th/vim-vsnip'
+        use 'hrsh7th/cmp-buffer'
+        use 'onsails/lspkind.nvim'
+        use 'nvim-lualine/lualine.nvim'
+        use 'nvim-lua/popup.nvim'
+        use 'nvim-lua/plenary.nvim'
+        use 'nvim-treesitter/nvim-treesitter'
+        use 'nvim-telescope/telescope.nvim'
+        use 'nvim-telescope/telescope-file-browser.nvim'
+        use 'lukas-reineke/indent-blankline.nvim'
+        use 'ThePrimeagen/harpoon'
+        use {
+                'numToStr/Comment.nvim',
+                config = function()
+                        require('Comment').setup()
+                end
+        }
+        use {'tzachar/cmp-tabnine', after = "nvim-cmp", run='powershell ./install.ps1', requires = 'hrsh7th/nvim-cmp'}
 
-local package_root = join_paths(temp_dir, 'nvim', 'site', 'pack')
-local install_path = join_paths(package_root, 'packer', 'start', 'packer.nvim')
-local compile_path = join_paths(install_path, 'plugin', 'packer_compiled.lua')
-
-require('packer').startup {
-    {
-        'wbthomason/packer.nvim',
-        'folke/tokyonight.nvim',
-        'neovim/nvim-lspconfig',
-        'hrsh7th/cmp-nvim-lsp',
-        'hrsh7th/nvim-cmp',
-        'hrsh7th/cmp-vsnip',
-        'hrsh7th/vim-vsnip',
-        'hrsh7th/cmp-buffer',
-        'onsails/lspkind.nvim',
-        'nvim-lualine/lualine.nvim',
-        'nvim-lua/popup.nvim',
-        'nvim-lua/plenary.nvim',
-        'nvim-treesitter/nvim-treesitter',
-        'nvim-telescope/telescope.nvim',
-        'nvim-telescope/telescope-file-browser.nvim',
-        {'tzachar/cmp-tabnine', after = "nvim-cmp", run='powershell ./install.ps1', requires = 'hrsh7th/nvim-cmp'},
-        'lukas-reineke/indent-blankline.nvim',
-        'ThePrimeagen/harpoon'
-
-    },
-    config = {
-        package_root = package_root,
-        compile_path = compile_path,
-    },
-}
+end)
 
 -- Theme
 vim.cmd[[colorscheme tokyonight]]
 
+-- Comment Setup
+-- gcc to comment line
+-- gbc to comment a block
+-- gco comment on line below
+-- gcO comment on line above
+-- gcA comment on end line
+require('Comment').setup()
+
+-- LuaLine Setup
 require('lualine').setup {
   options = {
     icons_enabled = false,
@@ -108,9 +101,9 @@ require('lualine').setup {
 
 local opts = { noremap=true, silent=true }
 vim.api.nvim_set_keymap('n', '<space>e', '<cmd>lua vim.diagnostic.open_float()<CR>', opts)
+vim.api.nvim_set_keymap('n', '<space>q', '<cmd>lua vim.diagnostic.setloclist()<CR>', opts)
 vim.api.nvim_set_keymap('n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<CR>', opts)
 vim.api.nvim_set_keymap('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<CR>', opts)
-vim.api.nvim_set_keymap('n', '<space>q', '<cmd>lua vim.diagnostic.setloclist()<CR>', opts)
 vim.api.nvim_set_keymap('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
 vim.api.nvim_set_keymap('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>', opts)
 vim.api.nvim_set_keymap('n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', opts)
@@ -126,7 +119,7 @@ vim.api.nvim_set_keymap('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>', opts
 vim.api.nvim_set_keymap('n', '<space>f', '<cmd>lua vim.lsp.buf.formatting()<CR>', opts)
 
 
--- Harpoon
+-- Harpoon keymaps
 vim.api.nvim_set_keymap('n', '<leader>a', '<cmd>lua require("harpoon.mark").add_file()<CR>', opts)
 vim.api.nvim_set_keymap('n', '<C-e>', '<cmd>lua require("harpoon.ui").toggle_quick_menu()<CR>', opts)
 
@@ -147,16 +140,20 @@ require('telescope').setup {
   },
 }
 
---Add leader shortcuts
-vim.keymap.set('n', '<leader><space>', require('telescope.builtin').buffers)
-vim.keymap.set('n', '<leader>sf', function()
+-- Telescope Extensions
+require("telescope").load_extension "file_browser"
+
+-- Telescope keymap
+vim.keymap.set('n', '<leader>ls', require('telescope.builtin').buffers)
+vim.api.nvim_set_keymap("n", "<leader>fb", ":Telescope file_browser<cr>", { noremap = true })
+vim.api.nvim_set_keymap("n", "<leader>lg", ":Telescope live_grep<cr>", { noremap = true })
+vim.keymap.set('n', '<leader>ff', function()
   require('telescope.builtin').find_files { previewer = false }
 end)
 vim.keymap.set('n', '<leader>sb', require('telescope.builtin').current_buffer_fuzzy_find)
 vim.keymap.set('n', '<leader>sh', require('telescope.builtin').help_tags)
 vim.keymap.set('n', '<leader>st', require('telescope.builtin').tags)
 vim.keymap.set('n', '<leader>sd', require('telescope.builtin').grep_string)
-vim.keymap.set('n', '<leader>sp', require('telescope.builtin').live_grep)
 vim.keymap.set('n', '<leader>so', function()
   require('telescope.builtin').tags { only_current_buffer = true }
 end)
@@ -196,7 +193,7 @@ cmp.setup {
                           if entry.completion_item.data ~= nil and entry.completion_item.data.detail ~= nil then
                                   menu = entry.completion_item.data.detail .. " " .. menu
                           end
-                          vim_item.kind = ""
+                          vim_item.kind = "ïƒ§"
                   end
                   vim_item.menu = menu
                   return vim_item
@@ -208,7 +205,7 @@ cmp.setup {
           ['<C-f>'] = cmp.mapping.scroll_docs(4),
           ['<C-Space>'] = cmp.mapping.complete(),
           ['<C-e>'] = cmp.mapping.abort(),
-          ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+          ['<C-y>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
   }),
 }
 
